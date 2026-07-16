@@ -37,6 +37,7 @@ Subject to the Initial Condition (IC) and Dirichlet Boundary Conditions (BC):
 ## Outputs
 Upon successful execution of the training and plotting scripts, the following outputs are generated:
 * `results_refined.json`: Contains the quantitative metrics from the final evaluation, including the total iterations and the final relative error.
+<img width="2100" height="1500" alt="Image" src="https://github.com/user-attachments/assets/d2430676-7e0a-45fe-818e-6f240979cc3b" />
 * `pinn_burgers_validation.png`: A comprehensive visualization featuring a heatmap of the predicted solution across space and time, overlaid with the spatial locations of the training data points. It also includes 1D slices at specific time steps ($t = 0.25, 0.50, 0.75$) comparing the network's prediction against the exact Chebfun reference solution.
 * `pinn_burgers_error_map.png`: A heatmap depicting the pointwise absolute error between the prediction and the ground truth.
 
