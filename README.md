@@ -40,6 +40,7 @@ Upon successful execution of the training and plotting scripts, the following ou
 * `pinn_burgers_validation.png`: A comprehensive visualization featuring a heatmap of the predicted solution across space and time, overlaid with the spatial locations of the training data points. It also includes 1D slices at specific time steps ($t = 0.25, 0.50, 0.75$) comparing the network's prediction against the exact Chebfun reference solution.
 <img width="2100" height="1500" alt="Image" src="https://github.com/user-attachments/assets/d2430676-7e0a-45fe-818e-6f240979cc3b" /><br>
 * `pinn_burgers_error_map.png`: A heatmap depicting the pointwise absolute error between the prediction and the ground truth.
+<img width="1200" height="750" alt="Image" src="https://github.com/user-attachments/assets/e54332e8-0964-4f54-a294-22546c7cb933" /><br>
 
 ## Conclusion
 The project successfully demonstrates the efficacy of Physics-Informed Neural Networks in solving nonlinear PDEs without relying on simulated interior data. The final refined model achieved a relative L2 error of **3.98 × 10⁻³** against the independent reference solution across a 25,600-point grid.
