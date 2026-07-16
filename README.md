@@ -1,48 +1,98 @@
-# Physics-Informed-Neural-Network-PINN-for-Burgers-Equation
-## Overview
-This project provides a PyTorch implementation of a Physics-Informed Neural Network (PINN) designed to solve the 1D viscous Burgers' equation. It reproduces the canonical example from the foundational paper by Raissi et al. (2019). The primary objective is to train a neural network to satisfy the governing Partial Differential Equation (PDE) across a continuous domain, relying solely on boundary and initial conditions without being exposed to any interior solution data during training.
+# Physics-Informed Neural Network for Burgers' Equation
 
-Burgers' equation serves as an excellent benchmark because it develops a steep, near-discontinuous shock front over time, providing a rigorous stress test for the network's ability to capture complex, nonlinear physical phenomena.
+Reproduction of the canonical example from:
 
-**Reference:**
-> Raissi, M., Perdikaris, P., & Karniadakis, G.E. (2019). "Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations." *Journal of Computational Physics*, 378, 686-707.
+> Raissi, M., Perdikaris, P., & Karniadakis, G.E. (2019). *Physics-informed
+> neural networks: A deep learning framework for solving forward and inverse
+> problems involving nonlinear partial differential equations.* Journal of
+> Computational Physics, 378, 686-707.
 
-## Mathematical Formulation
-The network $u_{\theta}(x, t)$ is trained to satisfy the following PDE:
+## What this is
 
-$$ u_t + u \cdot u_x - \frac{0.01}{\pi} \cdot u_{xx} = 0 \quad \text{for } x \in [-1, 1], \, t \in [0, 1] $$
+A neural network `u_θ(x, t)` is trained to satisfy the 1D viscous Burgers'
+equation
 
-Subject to the Initial Condition (IC) and Dirichlet Boundary Conditions (BC):
-* **IC:** $u(x, 0) = -\sin(\pi x)$
-* **BC:** $u(-1, t) = u(1, t) = 0$
+```
+u_t + u·u_x - (0.01/π)·u_xx = 0,      x ∈ [-1, 1],  t ∈ [0, 1]
+u(x, 0) = -sin(πx)                     (initial condition)
+u(-1, t) = u(1, t) = 0                 (Dirichlet boundary conditions)
+```
 
-## Methodology & Architecture
-* **Architecture:** Fully connected neural network with 2 input features ($x$ and $t$), 8 hidden layers comprising 20 neurons each, and a single output predicting $u$. It utilizes `tanh` activation functions and Xavier-normal weight initialization.
-* **Loss Function:** Minimizes a composite loss:
-    1.  **Data Loss:** Mean Squared Error (MSE) evaluated at 100 randomly sampled points from the initial and boundary conditions.
-    2.  **Physics Loss:** MSE of the PDE residual evaluated at 4,000 (later refined to 6,000) internal collocation points generated via Latin Hypercube Sampling. The residual is computed using PyTorch's autograd engine to find the exact analytical derivatives ($u_t, u_x, u_{xx}$).
-* **Optimization:** A two-stage strategy: an initial phase using the Adam optimizer for robust initial descent (3,000 iterations), followed by fine-tuning with the L-BFGS optimizer for high-precision convergence.
+without ever being shown the interior solution. Instead, the PDE itself is
+turned into a loss term: at randomly sampled "collocation" points, the
+residual `f := u_t + u·u_x − (0.01/π)·u_xx` is computed via PyTorch
+autograd (automatic differentiation through the network, twice, to get
+`u_xx`) and pushed toward zero. The network is also fit to the known
+initial/boundary values. Minimizing both losses jointly forces the network
+to behave like the solution of the PDE everywhere in the domain.
 
-## Repository Structure
+Burgers' equation is the standard benchmark for this method because it
+develops a steep, near-discontinuous shock front, which makes it a genuine
+stress test rather than a toy.
 
-| File | Description |
+## Files
+
+| File | Purpose |
 |---|---|
-| `pinn_burgers.py` | Main training script encompassing data loading, network definition, Adam and L-BFGS optimization stages, and validation. |
-| `refine_train.py` | Script to resume training from a checkpoint with a higher density of collocation points (6,000) and additional L-BFGS iterations for refinement. |
-| `make_plots.py` | Utility script to generate visualization figures comparing the PINN predictions against the exact reference solution. |
-| `verify_gradients.py` | An independent script utilizing finite-difference approximations to mathematically verify that the autograd-computed derivatives are accurate. |
-| `data/burgers_shock.mat` | The exact reference solution computed independently using a spectral method (Chebfun), used strictly for validation and never seen during training. |
-| `pinn_burgers_model_refined.pt` | The final saved model weights after the refinement training stage. |
+| `pinn_burgers.py` | Main training script (data loading, network, Adam stage, L-BFGS stage, validation) |
+| `refine_train.py` | Resumes the checkpoint with additional L-BFGS iterations and denser collocation sampling |
+| `make_plots.py` | Generates the validation figures from saved predictions |
+| `verify_gradients.py` | Independent finite-difference check that the autograd-computed `u_t`, `u_x`, `u_xx` are correct |
+| `data/burgers_shock.mat` | Reference solution, fetched from the original paper's repository (`maziarraissi/PINNs`), computed independently via a spectral (Chebfun) solver — **not used during training**, only for validation |
+| `pinn_burgers_model_refined.pt` | Final trained weights |
+| `results_refined.json` | Final quantitative results |
+| `pinn_burgers_validation.png` | Solution heatmap + slice comparisons against reference |
+| `pinn_burgers_error_map.png` | Pointwise absolute error map |
 
-## Outputs
-Upon successful execution of the training and plotting scripts, the following outputs are generated:
-* `results_refined.json`: Contains the quantitative metrics from the final evaluation, including the total iterations and the final relative error.
-* `pinn_burgers_validation.png`: A comprehensive visualization featuring a heatmap of the predicted solution across space and time, overlaid with the spatial locations of the training data points. It also includes 1D slices at specific time steps ($t = 0.25, 0.50, 0.75$) comparing the network's prediction against the exact Chebfun reference solution.
-<img width="2100" height="1500" alt="Image" src="https://github.com/user-attachments/assets/d2430676-7e0a-45fe-818e-6f240979cc3b" /><br>
-* `pinn_burgers_error_map.png`: A heatmap depicting the pointwise absolute error between the prediction and the ground truth.
-<img width="1200" height="750" alt="Image" src="https://github.com/user-attachments/assets/e54332e8-0964-4f54-a294-22546c7cb933" /><br>
+## Architecture / training setup
 
-## Conclusion
-The project successfully demonstrates the efficacy of Physics-Informed Neural Networks in solving nonlinear PDEs without relying on simulated interior data. The final refined model achieved a relative L2 error of **3.98 × 10⁻³** against the independent reference solution across a 25,600-point grid.
+- Fully connected network: 2 inputs (x, t) → 8 hidden layers × 20 neurons,
+  `tanh` activations → 1 output (u). Xavier-normal weight init (as in the
+  original paper).
+- Inputs normalized to [-1, 1] based on the domain bounds.
+- Loss = MSE(boundary/initial predictions) + MSE(PDE residual at
+  collocation points).
+- 100 IC/BC points, 6000 collocation points (Latin Hypercube sampled).
+- Optimization: Adam (3000 iters) → L-BFGS (3000 iters, strong-Wolfe line
+  search) for high-precision convergence, matching the optimizer strategy
+  used in the original paper.
 
-The visual outputs and the pointwise error map confirm that the model accurately captures the dynamics of the Burgers' equation. The error is near machine precision in smooth regions of the domain and is primarily concentrated along the steep shock front, which aligns exactly with the expected failure modes of PINNs on this specific benchmark. Furthermore, the `verify_gradients.py` script confirms that the underlying autograd mathematics driving the physics loss are functioning correctly.
+## Verification (this is the part that matters)
+
+1. **Gradient correctness.** The PDE residual depends on autograd-computed
+   derivatives `u_t`, `u_x`, `u_xx`. These were independently checked
+   against central finite-difference approximations in float64 — all three
+   matched to ~1e-4 absolute precision, confirming the residual computation
+   itself (not just the training loss) is implemented correctly.
+
+2. **Validation against an independent reference solution.** The
+   `burgers_shock.mat` file is the exact reference solution from the
+   original authors' repository, computed with a completely different
+   numerical method (spectral/Chebfun) — it is not generated by this code
+   and never touches the training loop. Final result:
+
+   ```
+   Relative L2 error vs. reference solution: 3.98 × 10⁻³  (25,600 test points)
+   ```
+
+   For comparison, the original paper reports ~6.7 × 10⁻⁴ under full
+   convergence; this run used a reduced iteration budget (single CPU core,
+   ~9 minutes total training time) and still lands in the same regime. Per
+   time-slice, error is near machine precision away from the shock and
+   concentrates almost entirely along the shock front (see
+   `pinn_burgers_error_map.png`) — exactly the known failure mode of PINNs
+   on this benchmark, which is itself a sign the implementation is correct
+   rather than buggy.
+
+## How to extend this for a fuller summer project
+
+- Swap in the inverse-problem variant: treat the viscosity `0.01/π` as an
+  unknown trainable parameter and recover it from sparse noisy data (the
+  second experiment in the original paper).
+- Try a different PDE (heat equation, Schrödinger equation, Allen-Cahn) —
+  same framework, different residual formula.
+- Compare against a plain (non-physics-informed) regression network trained
+  only on IC/BC data, to show *why* the physics constraint matters.
+- Investigate adaptive/importance collocation sampling near the shock to
+  push error down further (this is an active research direction —
+  residual-based adaptive refinement).

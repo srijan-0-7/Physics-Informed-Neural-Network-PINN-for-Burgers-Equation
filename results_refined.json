@@ -1,0 +1,6 @@
+{
+  "relative_l2_error": 0.0039805854030998365,
+  "n_u": 100,
+  "n_f": 6000,
+  "refine_lbfgs_iters": 3000
+}
